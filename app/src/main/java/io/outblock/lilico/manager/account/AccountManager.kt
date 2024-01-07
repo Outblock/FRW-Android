@@ -4,12 +4,15 @@ import android.widget.Toast
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.google.gson.annotations.SerializedName
+import com.nftco.flow.sdk.FlowAddress
 import io.outblock.lilico.R
 import io.outblock.lilico.cache.CacheManager
 import io.outblock.lilico.firebase.auth.getFirebaseJwt
 import io.outblock.lilico.firebase.auth.isAnonymousSignIn
 import io.outblock.lilico.firebase.auth.signInAnonymously
 import io.outblock.lilico.firebase.messaging.uploadPushToken
+import io.outblock.lilico.manager.flowjvm.lastBlockAccount
+import io.outblock.lilico.manager.key.CryptoProviderManager
 import io.outblock.lilico.manager.wallet.WalletManager
 import io.outblock.lilico.network.ApiService
 import io.outblock.lilico.network.clearUserCache
@@ -28,8 +31,6 @@ import io.outblock.lilico.utils.setUploadedAddressSet
 import io.outblock.lilico.utils.toast
 import io.outblock.lilico.utils.uiScope
 import io.outblock.lilico.wallet.Wallet
-import io.outblock.lilico.wallet.getPublicKey
-import io.outblock.lilico.wallet.sign
 
 object AccountManager {
     private val accounts = mutableListOf<Account>()
@@ -57,11 +58,24 @@ object AccountManager {
 
     fun userInfo() = get()?.userInfo
 
+    fun updateUserKeyIndex(username: String, prefix: String) {
+        ioScope {
+            val account = FlowAddress(WalletManager.selectedWalletAddress()).lastBlockAccount()
+            if (account == null || account.keys.isEmpty()) {
+                return@ioScope
+            }
+            val cryptoProvider = CryptoProviderManager.getCurrentCryptoProvider() ?: return@ioScope
+            val publicKey = cryptoProvider.getPublicKey()
+            val index = account.keys.find { it.publicKey.base16Value == publicKey }?.id ?: 0
+            list().firstOrNull { it.userInfo.username == username }?.keyIndex = index
+            accountsCache().cache(Accounts().apply { addAll(accounts) })
+        }
+    }
+
     fun updateUserInfo(userInfo: UserInfoData) {
         list().firstOrNull { it.userInfo.username == userInfo.username }?.userInfo = userInfo
         accountsCache().cache(Accounts().apply { addAll(accounts) })
     }
-
 
     fun updateWalletInfo(wallet: WalletListData) {
         list().firstOrNull { it.userInfo.username == wallet.username }?.wallet = wallet
@@ -123,19 +137,21 @@ object AccountManager {
             callback(false)
             return
         }
-        val wallet = AccountWalletManager.getHDWalletByUID(account.wallet?.id ?: "")
-        if (wallet == null) {
+        val deviceInfoRequest = DeviceInfoManager.getDeviceInfoRequest()
+        val service = retrofit().create(ApiService::class.java)
+        val cryptoProvider = CryptoProviderManager.generateAccountCryptoProvider(account)
+        if (cryptoProvider == null) {
             callback(false)
             return
         }
-        val deviceInfoRequest = DeviceInfoManager.getDeviceInfoRequest()
-        val service = retrofit().create(ApiService::class.java)
         val resp = service.login(
             LoginRequest(
-                signature = wallet.sign(
-                    getFirebaseJwt()
+                signature = cryptoProvider.getUserSignature(getFirebaseJwt()),
+                accountKey = AccountKey(
+                    publicKey = cryptoProvider.getPublicKey(),
+                    hashAlgo = cryptoProvider.getHashAlgorithm().index,
+                    signAlgo = cryptoProvider.getSignatureAlgorithm().index
                 ),
-                accountKey = AccountKey(publicKey = wallet.getPublicKey(removePrefix = true)),
                 deviceInfo = deviceInfoRequest
             )
         )
@@ -146,7 +162,9 @@ object AccountManager {
         firebaseLogin(resp.data?.customToken!!) { isSuccess ->
             if (isSuccess) {
                 setRegistered()
-                Wallet.store().resume()
+                if (account.prefix == null) {
+                    Wallet.store().resume()
+                }
                 callback(true)
             } else {
                 callback(false)
@@ -173,6 +191,10 @@ data class Account(
     var isActive: Boolean = false,
     @SerializedName("wallet")
     var wallet: WalletListData? = null,
+    @SerializedName("prefix")
+    var prefix: String? = null,
+    @SerializedName("keyIndex")
+    var keyIndex: Int = 0
 )
 
 class Accounts : ArrayList<Account>()

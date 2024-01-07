@@ -89,6 +89,13 @@
             android:windowSoftInputMode="adjustResize"/>
 
         <activity
+            android:name=".page.wallet.sync.WalletSyncActivity"
+            android:launchMode="singleTop"/>
+
+        <activity android:name=".page.wallet.confirm.WalletConfirmActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity
             android:name=".page.nft.nftdetail.NftDetailActivity"
             android:screenOrientation="portrait"/>
         <activity
@@ -117,6 +124,20 @@
 
         <activity
             android:name="io.outblock.lilico.page.profile.subpage.backup.BackupSettingActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name="io.outblock.lilico.page.backup.WalletBackupActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity
+            android:name="io.outblock.lilico.page.backup.multibackup.MultiBackupActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity android:name=".page.restore.WalletRestoreActivity"
+            android:screenOrientation="portrait"/>
+
+        <activity android:name=".page.restore.multirestore.MultiRestoreActivity"
             android:screenOrientation="portrait"/>
 
         <activity
