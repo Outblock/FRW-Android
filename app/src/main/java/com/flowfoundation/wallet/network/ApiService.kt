@@ -1,5 +1,6 @@
 package com.flowfoundation.wallet.network
 
+import com.flowfoundation.wallet.manager.cadence.CadenceScriptResponse
 import com.flowfoundation.wallet.manager.flowjvm.transaction.PayerSignable
 import com.flowfoundation.wallet.network.model.*
 import retrofit2.http.*
@@ -187,9 +188,10 @@ interface ApiService {
         @Query("to") to: String,
     ): CurrencyResponse
 
-    @POST("/v1/user/address/sandboxnet")
-    suspend fun enableSandboxNet(
-    ): SandboxEnableResponse
+    @POST("/v1/user/address/network")
+    suspend fun enableNetwork(@Body param: NetworkEnableParams): NetworkEnableResponse
+
+    @POST("/v1/user/address/")
 
     @GET("/v1/user/location")
     suspend fun getDeviceLocation(): LocationInfoResponse
@@ -202,4 +204,8 @@ interface ApiService {
 
     @POST("/v1/user/device")
     suspend fun updateDeviceInfo(@Body params: UpdateDeviceParams): String
+
+    @GET("/api/scripts")
+    suspend fun getCadenceScript(): CadenceScriptResponse
+
 }
