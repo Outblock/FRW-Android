@@ -203,7 +203,7 @@ interface ApiService {
     suspend fun getKeyDeviceInfo(): KeyDeviceInfoResponse
 
     @POST("/v1/user/device")
-    suspend fun updateDeviceInfo(@Body params: UpdateDeviceParams): String
+    suspend fun updateDeviceInfo(@Body params: UpdateDeviceParams): CommonResponse
 
     @GET("/api/scripts")
     suspend fun getCadenceScript(): CadenceScriptResponse
