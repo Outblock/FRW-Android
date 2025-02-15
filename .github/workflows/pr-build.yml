@@ -1,0 +1,105 @@
+name: Android Build Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ./frw
+
+      - name: Checkout tools repo
+        uses: actions/checkout@v4
+        with:
+          repository: Outblock/Flow-Wallet-Kit
+          path: ./Flow-Wallet-Kit
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: false
+
+      - name: Ensure Local Properties Exist
+        run: |
+          FILE_PATH="${{ github.workspace }}/frw/local.properties"
+          echo "sdk.dir=$ANDROID_HOME" > "$FILE_PATH"
+          if [ -n "${{ secrets.LOCAL_PROPERTIES }}" ]; then
+            echo "${{ secrets.LOCAL_PROPERTIES }}" >> "$FILE_PATH"
+          fi
+
+      - name: Ensure Google Services JSON Exists
+        env:
+          DUMMY_GOOGLE_SERVICES: |
+            {
+              "project_info": {
+                "project_number": "000000000000",
+                "project_id": "dummy-project-id",
+                "firebase_url": "https://dummy-project-id.firebaseio.com",
+                "storage_bucket": "dummy-project-id.appspot.com"
+              },
+              "client": [
+                {
+                  "client_info": {
+                    "mobilesdk_app_id": "1:000000000000:android:dummy",
+                    "android_client_info": {
+                      "package_name": "com.flowfoundation.wallet.dev"
+                    }
+                  },
+                  "oauth_client": [],
+                  "api_key": [
+                    {
+                      "current_key": "dummy_api_key"
+                    }
+                  ],
+                  "services": {
+                    "appinvite_service": {
+                      "other_platform_oauth_client": []
+                    }
+                  }
+                }
+              ]
+            }
+        run: |
+          FILE_PATH="${{ github.workspace }}/frw/app/src/debug/google-services.json"
+          if [ -n "${{ secrets.GOOGLE_SERVICES }}" ]; then
+            printf '%s' "${{ secrets.GOOGLE_SERVICES }}" > "$FILE_PATH"
+          else
+            echo "$DUMMY_GOOGLE_SERVICES" > "$FILE_PATH"
+            echo "⚠️ WARNING: GOOGLE_SERVICES secret is missing! Using a dummy file."
+          fi
+      
+      - name: Ensure Key Properties Exist
+        run: |
+          FILE_PATH="${{ github.workspace }}/frw/key.properties"
+          if [ -n "${{ secrets.KEY_PROPERTIES }}" ]; then
+            echo "${{ secrets.KEY_PROPERTIES }}" > "$FILE_PATH"
+          else
+            echo "storeFile=${{ github.workspace }}/frw/app/keystore.jks" > "$FILE_PATH"
+            echo "storePassword=password" >> "$FILE_PATH"
+            echo "keyAlias=alias_name" >> "$FILE_PATH"
+            echo "keyPassword=password" >> "$FILE_PATH"
+            echo "⚠️ WARNING: Using a dummy key.properties file for PR builds."
+          fi
+
+      - name: Generate Dummy Keystore (For PR Builds)
+        run: |
+          KEYSTORE_PATH="${{ github.workspace }}/frw/app/keystore.jks"
+          keytool -genkeypair -v -keystore "$KEYSTORE_PATH" -storepass "password" -alias "alias_name" -keypass "password" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Github Action, OU=DevEx, O=Flow Foundation, L=Ottawa, S=Ontario, C=CA"
+
+      - name: Debug Key Properties File
+        run: cat ${{ github.workspace }}/frw/key.properties
+
+      - name: Build APK (No Upload)
+        run: cd ./frw && ./gradlew assembleDebug --stacktrace
