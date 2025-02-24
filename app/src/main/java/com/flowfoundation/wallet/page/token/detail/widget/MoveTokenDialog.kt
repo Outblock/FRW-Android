@@ -32,6 +32,7 @@ import com.flowfoundation.wallet.utils.extensions.setVisible
 import com.flowfoundation.wallet.utils.extensions.toSafeDecimal
 import com.flowfoundation.wallet.utils.format
 import com.flowfoundation.wallet.utils.ioScope
+import com.flowfoundation.wallet.utils.logd
 import com.flowfoundation.wallet.utils.toast
 import com.flowfoundation.wallet.utils.uiScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -310,8 +311,7 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                     storageTip.setInsufficientTip(AccountInfoManager.validateOtherTransaction(isMove = true))
                 }
             }
-
-            // Conditionally render arrows in dropdown
+            
             val eligibleFrom = getEligibleAccounts().filter { it != layoutToAccount.getAccountAddress() }
             val eligibleTo = getEligibleAccounts().filter { it != layoutFromAccount.getAccountAddress() }
 
