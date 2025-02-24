@@ -158,6 +158,26 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                 }
             }
         }
+        initView()
+
+        // Set up From address selection.
+        binding.layoutFromAccount.setOnClickListener {
+            uiScope {
+                // Build the eligible list for the From account (exclude current To)
+                val eligibleFrom = getEligibleAccounts().filter { it != binding.layoutToAccount.getAccountAddress() }
+                val newFromAddress = SelectAccountDialog().show(
+                    selectedAddress = binding.layoutFromAccount.getAccountAddress(),
+                    addressList = eligibleFrom,
+                    fragmentManager = childFragmentManager
+                )
+                newFromAddress?.let { selected ->
+                    binding.layoutFromAccount.setAccountInfo(selected)
+                    moveFromAddress = selected
+                    // Refresh the balance displayed when the From token changes.
+                    fetchTokenBalance()
+                }
+            }
+        }
 
         // Set up To address selection.
         binding.layoutToAccount.setOnClickListener {
@@ -195,8 +215,6 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
             fetchTokenBalance()
             updateMoveFeeVisibility()  // if you extracted the fee update logic into a helper
         }
-
-
     }
 
     private fun moveToken() {
