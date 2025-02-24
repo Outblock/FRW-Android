@@ -328,6 +328,7 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
     private fun fetchTokenBalance() {
         ioScope {
             val coin = FlowCoinListManager.getCoinById(contractId)
+            logd("MoveTokenDialog", "Fetching balance for moveFromAddress: $moveFromAddress")
             fromBalance = if (coin == null) {
                 BigDecimal.ZERO
             } else {
@@ -346,6 +347,9 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
             }
             uiScope {
                 binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, fromBalance.format(8))
+                val formattedBalance = fromBalance.format(8)
+                binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, formattedBalance)
+                logd("MoveTokenDialog", "Updated balance: $formattedBalance")
             }
         }
     }
