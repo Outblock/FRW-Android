@@ -307,7 +307,6 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                     storageTip.setInsufficientTip(AccountInfoManager.validateOtherTransaction(isMove = true))
                 }
             }
-            
             val eligibleFrom = getEligibleAccounts().filter { it != layoutToAccount.getAccountAddress() }
             val eligibleTo = getEligibleAccounts().filter { it != layoutFromAccount.getAccountAddress() }
 
