@@ -173,6 +173,7 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                     binding.layoutFromAccount.setAccountInfo(selected)
                     moveFromAddress = selected
                     isFundToEVM = !EVMWalletManager.isEVMWalletAddress(selected)
+
                     fetchTokenBalance()
                 }
             }
