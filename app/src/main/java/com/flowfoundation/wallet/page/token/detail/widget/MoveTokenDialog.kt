@@ -172,8 +172,7 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                 newFromAddress?.let { selected ->
                     binding.layoutFromAccount.setAccountInfo(selected)
                     moveFromAddress = selected
-                    isFundToEVM = EVMWalletManager.isEVMWalletAddress(selected)
-                    logd("MoveTokenDialog", "Updated From Address: $moveFromAddress, isFundToEVM: $isFundToEVM")
+                    isFundToEVM = !EVMWalletManager.isEVMWalletAddress(selected)
                     fetchTokenBalance()
                 }
             }
@@ -335,16 +334,15 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                         moveFromAddress
                     )
                 } else {
-                    logd("MoveTokenDialog", "Fetching Flow balance for: $moveFromAddress")
-                    cadenceQueryTokenBalanceWithAddress(coin, moveFromAddress)
+                    if (coin.isFlowCoin()) {
+                        cadenceQueryCOATokenBalance()
+                    } else {
+                        BalanceManager.getEVMBalanceByCoin(coin.address)
+                    }
                 } ?: BigDecimal.ZERO
             }
-
-            logd("MoveTokenDialog", "Updated Balance: $fromBalance")
-
             uiScope {
-                val formattedBalance = fromBalance.format(8)
-                binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, formattedBalance)
+                binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, fromBalance.format(8))
             }
         }
     }
