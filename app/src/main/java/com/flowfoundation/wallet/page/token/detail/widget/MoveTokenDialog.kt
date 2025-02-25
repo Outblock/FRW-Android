@@ -32,6 +32,7 @@ import com.flowfoundation.wallet.utils.extensions.setVisible
 import com.flowfoundation.wallet.utils.extensions.toSafeDecimal
 import com.flowfoundation.wallet.utils.format
 import com.flowfoundation.wallet.utils.ioScope
+import com.flowfoundation.wallet.utils.logd
 import com.flowfoundation.wallet.utils.toast
 import com.flowfoundation.wallet.utils.uiScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -162,7 +163,6 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
         // Set up From address selection.
         binding.layoutFromAccount.setOnClickListener {
             uiScope {
-                // Build the eligible list for the From account (exclude current To)
                 val eligibleFrom = getEligibleAccounts().filter { it != binding.layoutToAccount.getAccountAddress() }
                 val newFromAddress = SelectAccountDialog().show(
                     selectedAddress = binding.layoutFromAccount.getAccountAddress(),
@@ -172,6 +172,8 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                 newFromAddress?.let { selected ->
                     binding.layoutFromAccount.setAccountInfo(selected)
                     moveFromAddress = selected
+                    isFundToEVM = EVMWalletManager.isEVMWalletAddress(selected)
+                    logd("MoveTokenDialog", "Updated From Address: $moveFromAddress, isFundToEVM: $isFundToEVM")
                     fetchTokenBalance()
                 }
             }
@@ -333,15 +335,14 @@ class MoveTokenDialog : BottomSheetDialogFragment() {
                         moveFromAddress
                     )
                 } else {
-                    if (coin.isFlowCoin()) {
-                        cadenceQueryCOATokenBalance()
-                    } else {
-                        BalanceManager.getEVMBalanceByCoin(coin.address)
-                    }
+                    logd("MoveTokenDialog", "Fetching Flow balance for: $moveFromAddress")
+                    cadenceQueryTokenBalanceWithAddress(coin, moveFromAddress)
                 } ?: BigDecimal.ZERO
             }
+
+            logd("MoveTokenDialog", "Updated Balance: $fromBalance")
+
             uiScope {
-                binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, fromBalance.format(8))
                 val formattedBalance = fromBalance.format(8)
                 binding.tvBalance.text = Env.getApp().getString(R.string.balance_value, formattedBalance)
             }
